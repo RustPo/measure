@@ -1,0 +1,35 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # shell: bash включает pipefail, иначе tee скроет код выхода упавших тестов
+      - name: Тесты с покрытием
+        shell: bash
+        run: node --test --experimental-test-coverage | tee test-output.txt
+
+      - name: Покрытие в сводке запуска
+        if: always() && matrix.node == 22
+        shell: bash
+        run: |
+          {
+            echo '### Покрытие (Node 22)'
+            echo '```'
+            sed -n '/start of coverage report/,/end of coverage report/p' test-output.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
